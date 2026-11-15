@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { env, exports } from "cloudflare:workers";
 import { getAgentByName } from "agents";
 import type { UIMessage } from "ai";
@@ -2260,6 +2260,53 @@ describe("Think — beforeTurn config overrides", () => {
       .map((p) => p.text)
       .join("");
     expect(text).toBe("HELLO FROM THE ASSISTANT");
+  });
+
+  it("without onError, the AI SDK logs the raw stream error to console.error", async () => {
+    // Baseline for TurnConfig.onError: the AI SDK's default handler prints the
+    // whole error object. Provider errors carry the request body (the prompt).
+    const agent = await freshAgent("bt-on-error-default");
+    await agent.setInBandErrorResponse("PRIVATE_PROMPT in provider error");
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    try {
+      const result = await agent.testChat("Fail this turn");
+      expect(result.error).toBeDefined();
+      expect(consoleError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: "PRIVATE_PROMPT in provider error"
+        })
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("onError override receives stream errors instead of console.error", async () => {
+    const agent = await freshAgent("bt-on-error-override");
+    await agent.setInBandErrorResponse("PRIVATE_PROMPT in provider error");
+    await agent.setTurnConfigOnError();
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    try {
+      const result = await agent.testChat("Fail this turn");
+      // The callback only observes: the turn still fails.
+      expect(result.error).toBeDefined();
+      expect(await agent.getTurnOnErrorLog()).toEqual([
+        "PRIVATE_PROMPT in provider error"
+      ]);
+      expect(consoleError).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: "PRIVATE_PROMPT in provider error"
+        })
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it("repairToolCall repairs invalid tool input before execution", async () => {

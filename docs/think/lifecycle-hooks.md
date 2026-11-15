@@ -202,6 +202,7 @@ All fields are optional. Return only what you want to change.
 | `providerOptions`          | `Record<string, unknown>`                      | Provider-specific options                                                                                                                                                                                                       |
 | `repairToolCall`           | `ToolCallRepairFunction`                       | Repair a tool call that the AI SDK cannot parse or validate. The returned call is revalidated before execution.                                                                                                                 |
 | `experimental_transform`   | `StreamTextTransform \| StreamTextTransform[]` | AI SDK stream transform(s) for this turn — inspect or rewrite stream parts (for example, emit `source` parts derived from tool results). Applied in order.                                                                      |
+| `onError`                  | `StreamTextOnErrorCallback`                    | Called when this turn's `streamText` reports an error. When unset, the AI SDK logs the raw error with `console.error`, and provider errors include the full request body. The turn still fails and `onChatError` still runs.    |
 
 ### Examples
 

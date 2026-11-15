@@ -1904,6 +1904,27 @@ export class ThinkTestAgent extends Think {
     };
   }
 
+  private _turnOnErrorLog: string[] = [];
+
+  /**
+   * Sets a per-turn `onError` that records each error message. Like the
+   * transform above, the callback is built inside the DO because functions
+   * can't cross the RPC boundary.
+   */
+  async setTurnConfigOnError(): Promise<void> {
+    this._turnConfigOverride = {
+      onError: ({ error }) => {
+        this._turnOnErrorLog.push(
+          error instanceof Error ? error.message : String(error)
+        );
+      }
+    };
+  }
+
+  async getTurnOnErrorLog(): Promise<string[]> {
+    return this._turnOnErrorLog;
+  }
+
   override async beforeStep(
     ctx: PrepareStepContext
   ): Promise<StepConfig | void> {

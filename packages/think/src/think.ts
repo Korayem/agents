@@ -2976,6 +2976,16 @@ export interface TurnConfig {
     typeof streamText
   >[0]["experimental_transform"];
   /**
+   * Called when this turn's `streamText` call reports an error. Forwarded to
+   * `streamText` as `onError`. When unset, the AI SDK logs the raw error with
+   * `console.error`; provider errors such as `APICallError` include
+   * `requestBodyValues`, the full request body with the prompt. Set it to log
+   * a redacted summary instead. It only observes the error: the turn still
+   * fails and `onChatError` still runs. Configure this function from a Think
+   * subclass; sandboxed extensions cannot send functions over RPC.
+   */
+  onError?: Parameters<typeof streamText>[0]["onError"];
+  /**
    * Repairs tool calls that the AI SDK cannot parse or validate before tool
    * execution. The returned tool call is parsed and validated again. Configure
    * this function from a Think subclass; sandboxed extensions cannot send
@@ -7705,6 +7715,9 @@ import { createAITools } from "@cloudflare/computer/tools/ai-sdk";
       // v6 and v7. TurnConfig exposes the stable v7 name while this boundary
       // keeps both supported majors working.
       experimental_repairToolCall: config.repairToolCall,
+      // Unset keeps the AI SDK default, which logs the raw error (provider
+      // errors carry the full request body) with `console.error`.
+      onError: config.onError,
       // Forward the per-turn structured-output spec from TurnConfig so
       // callers can use AI SDK `Output.object({ schema })` / `Output.text()`
       // on the terminal turn without dropping tools at model construction.
